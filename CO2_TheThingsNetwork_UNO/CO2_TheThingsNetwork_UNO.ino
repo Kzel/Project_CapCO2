@@ -27,7 +27,8 @@ void setup()
   loraSerial.begin(57600);
   debugSerial.begin(115200);
   analogReference(DEFAULT);
-
+  pinMode(12, OUTPUT); // Green LED
+  pinMode(13, OUTPUT); // Red LED
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
@@ -67,6 +68,17 @@ void loop()
   {
     int voltage_diference = voltage - 400;
     float concentration = voltage_diference * 50.0 / 16.0;
+
+    // For warning if concentration higher than 1000 ppm
+    // Red LED will light up
+    // Else Green LED will light up
+    if(concentration > 1000){
+      digitalWrite(13, 1);
+      digitalWrite(12, 0);
+    }else{
+      digitalWrite(13, 0);
+      digitalWrite(12, 1);   
+    }
     
     // Print Voltage
     Serial.print("voltage:");
@@ -94,13 +106,13 @@ void loop()
     
     // LOOP for sending CO2 concentration data
     debugSerial.println("-- SEND");
+    // Prepare payload of 1 byte to indicate 
     byte payload[1];
     payload[0] = concentraion2;
     // Send its value
     ttn.sendBytes(payload, sizeof(payload));
   }
   
-  // Prepare payload of 1 byte to indicate 
   delay(5000);
   display.clearDisplay(); 
 }
