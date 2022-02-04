@@ -222,5 +222,5 @@ void loop(){
     dtostrf(CO2, 1, 2, co2Char);
     client.publish("esp32/co2", co2Char);
   }
-  delay(2000);
+  delay(5000);
 }
