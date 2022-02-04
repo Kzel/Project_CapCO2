@@ -220,7 +220,7 @@ void loop(){
     // Convertir l'humidite en array de char et Publish dans le topic de temperature
     char co2Char[8];
     dtostrf(CO2, 1, 2, co2Char);
-    client.publish("esp32/co", co2Char);
+    client.publish("esp32/co2", co2Char);
   }
-  delay(5000);
+  delay(2000);
 }
