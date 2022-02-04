@@ -102,7 +102,7 @@ void loop()
     
     // For conversion into centaine for better bytes code format
     int concentraion2;
-    concentraion2 = (int)concentration/10;
+    concentraion2 = (int)concentration/20;
     
     // LOOP for sending CO2 concentration data
     debugSerial.println("-- SEND");
