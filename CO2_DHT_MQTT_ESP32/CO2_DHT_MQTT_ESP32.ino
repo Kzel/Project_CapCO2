@@ -9,8 +9,11 @@
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
-#define DHTPIN 5 //Pin pour connecter la data du DHT11
+#define DHTPIN 25 //Pin pour connecter la data du DHT11
 #define DHTTYPE DHT11 
+
+#define LEDPINR 33
+#define LEDPINV 32
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -22,11 +25,12 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 int analogPin = 35;
 
-const char* mqtt_serveur = "www.tryffin.tk"; // L'adresse IP du Cloud
+const char* mqtt_serveur = "192.168.112.175"; // L'adresse IP du Cloud
 // Le client et le dernier message
 WiFiClient espClient;
 PubSubClient client(espClient);
 long dernier_mesg = 0;
+
 
 // fonction pour lire la valeur de humidité
 float ReadHum(){
@@ -96,7 +100,7 @@ float ReadCO2(){
 
 void setup(){
   Serial.begin(115200);
-  pinMode(LED_BUILTIN, OUTPUT);
+  
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
@@ -104,24 +108,34 @@ void setup(){
   delay(2000);
 
   dht.begin(); // mettre à jour le DHT11
+
+  pinMode(LEDPINR,OUTPUT);
+  pinMode(LEDPINV,OUTPUT);
+  
   // Connecter avec Wifi
   WiFi.begin(ssid, password);
-   while (WiFi.status() != WL_CONNECTED) {
-     delay(1000);
-     Serial.println("En cours de connecter a Wifi\n");
-   }
-   if(WiFi.status() == WL_CONNECTED){
-     Serial.println("Succes!\n");
-   }
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("En cours de connecter a Wifi\n");
+  }
+  
+  if(WiFi.status() == WL_CONNECTED){
+    Serial.println("Succes!\n");
+  }
+  
   Serial.println(WiFi.localIP());
+  
   // Positionner le serveur avec le port 1883 et le callback
   client.setServer(mqtt_serveur, 1883);
   client.setCallback(callback);
+  
   display.clearDisplay(); //initialisation ecran
+  
   // configurer la taille, la couleur et le point départ de text
   display.setTextSize(2); 
   display.setTextColor(WHITE);
 }
+
 
 void callback(char* topic, byte* message, unsigned int length) {
 
@@ -131,22 +145,10 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
+  
   Serial.println();
-  if (String(topic) == "esp32/led") {
-    Serial.print("Changer le switch du LED a ");
-    // Allumer le LED si le switch est en ON
-    if(messageTemp == "on"){
-      Serial.println("on");
-      digitalWrite(LED_BUILTIN, HIGH);
-    }
-    // Eteindre le LED si le switch est en OFF
-    else if(messageTemp == "off"){
-      Serial.println("off");
-      digitalWrite(LED_BUILTIN, LOW);
-
-    }
-  }
 }
+
 
 void reconnect() {
   // Boucle jusqu'a reconncter
@@ -156,8 +158,6 @@ void reconnect() {
 
     if (client.connect("ESP32Client")) {
       Serial.println("Connecte!");
-      // Subscribe le topic du LED
-      client.subscribe("esp32/led");
 
     } else {
       Serial.print("Echec, Return Code=");
@@ -170,7 +170,7 @@ void reconnect() {
 
 void loop(){
   
-   if (!client.connected()) {
+  if (!client.connected()) {
     reconnect();
   }
   client.loop();
@@ -178,6 +178,14 @@ void loop(){
   float CO2 = ReadCO2(); //lire la concentration CO2
   float hum = ReadHum(); //lire la valeur de l'humidité
   float temp = ReadTemp(); //lire la valeur de température
+
+  if(CO2 >= 1000 ){
+      digitalWrite(LEDPINV,LOW);
+      digitalWrite(LEDPINR,HIGH);
+  }else{
+      digitalWrite(LEDPINR,LOW);
+      digitalWrite(LEDPINV,HIGH);
+  }
 
   // Display static text
   display.setCursor(0, 0); 
@@ -210,12 +218,12 @@ void loop(){
     // Convertir la temperature en array de char et Publish dans le topic de temperature
     char tempChar[8];
     dtostrf(temp, 1, 2, tempChar);
-    client.publish("esp32/temperature", tempChar);
+    client.publish("esp32/temp", tempChar);
     
     // Convertir l'humidite en array de char et Publish dans le topic de temperature
     char humdChar[8];
     dtostrf(hum, 1, 2, humdChar);
-    client.publish("esp32/humidite", humdChar);
+    client.publish("esp32/hum", humdChar);
 
     // Convertir l'humidite en array de char et Publish dans le topic de temperature
     char co2Char[8];
