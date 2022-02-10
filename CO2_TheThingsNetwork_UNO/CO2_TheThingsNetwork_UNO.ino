@@ -1,77 +1,48 @@
 #include <TheThingsNetwork.h>
 #include <Wire.h>
+#include <DHT.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
-// Set your AppEUI and AppKey
 const char *appEui = "0000000000000000";
 const char *appKey = "7FA6FEA830ADCBA6B4C9C556C69A6B46";
 
-#define loraSerial Serial1
-#define debugSerial Serial
-
-// Replace REPLACE_ME with TTN_FP_EU868 or TTN_FP_US915
 #define freqPlan TTN_FP_EU868
 
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins) and TheThingsNetwork
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-TheThingsNetwork ttn(loraSerial, debugSerial, freqPlan);
+TheThingsNetwork ttn(Serial1, Serial, TTN_FP_EU868);
 
-int sensorIn = A0;
-
+DHT dht(6, DHT11);
 void setup()
 {
-  loraSerial.begin(57600);
-  debugSerial.begin(115200);
+  Serial1.begin(57600);
+  Serial.begin(115200);
   analogReference(DEFAULT);
-  pinMode(12, OUTPUT); // Green LED
-  pinMode(13, OUTPUT); // Red LED
+  dht.begin();
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   }
-  delay(2000);
-
-  display.clearDisplay(); //initialisation ecran
-  // configurer la taille, la couleur et le point départ de text
+  pinMode(12, OUTPUT);
+  pinMode(13, OUTPUT);
+  display.clearDisplay(); 
   display.setTextSize(2); 
   display.setTextColor(WHITE);
-  
-  // Wait a maximum of 10s for Serial Monitor
-  while (!debugSerial && millis() < 10000)
-    ;
-  debugSerial.println("-- STATUS");
-  ttn.showStatus();
-  debugSerial.println("-- JOIN");
   ttn.join(appEui, appKey);
 }
 
 void loop()
 {
-  debugSerial.println("-- SENSOR");
-  int sensorValue = analogRead(sensorIn);
-
-  // The analog signal is converted to a voltage
-  float voltage = sensorValue * (5000 / 1024.0);
-  if (voltage == 0)
-  {
-    Serial.println("Fault");
-  }
-  else if (voltage < 400)
-  {
-    Serial.println("preheating");
-  }
-  else
-  {
+  
+    int sensorValue = analogRead(A0);
+  
+    float voltage = sensorValue * (5000 / 1024.0);
     int voltage_diference = voltage - 400;
     float concentration = voltage_diference * 50.0 / 16.0;
-
-    // For warning if concentration higher than 1000 ppm
-    // Red LED will light up
-    // Else Green LED will light up
+    float hum = dht.readHumidity();
+    float temp = dht.readTemperature();
     if(concentration > 1000){
       digitalWrite(13, 1);
       digitalWrite(12, 0);
@@ -80,39 +51,36 @@ void loop()
       digitalWrite(12, 1);   
     }
     
-    // Print Voltage
-    Serial.print("voltage:");
-    Serial.print(voltage);
-    Serial.println("mv");
-    
-    //Print CO2 concentration
-    Serial.print(concentration);
-    Serial.println("ppm");
+  display.setCursor(0, 0); 
+  display.println(concentration);
+  display.setCursor(90, 0);
+  display.println("ppm");
 
-    // Display static text
-    display.setCursor(50, 0); 
-    display.println("CO2");
+  display.setCursor(0, 25); 
+  display.println("H: ");
+  display.setCursor(25, 25);
+  display.println(hum);
+  display.setCursor(90, 25);
+  display.println("%");
 
-    display.setCursor(0, 20);
-    display.println(concentration);
-
-    display.setCursor(85, 20);
-    display.println("ppm");
-    display.display();
-    
-    // For conversion into centaine for better bytes code format
-    int concentraion2;
-    concentraion2 = (int)concentration/20;
-    
-    // LOOP for sending CO2 concentration data
-    debugSerial.println("-- SEND");
-    // Prepare payload of 1 byte to indicate 
-    byte payload[1];
-    payload[0] = concentraion2;
-    // Send its value
-    ttn.sendBytes(payload, sizeof(payload));
-  }
+  display.setCursor(0, 50); 
+  display.println("T:");
+  display.setCursor(25, 50);
+  display.println(temp);
+  display.setCursor(90, 50);
+  display.println("C");
   
+  display.display();
+   
+  int concentraion2;
+  concentraion2 = (int)concentration/20;
+  byte payload[4];
+  payload[0] = concentraion2;
+  payload[1] = (int) hum;
+  payload[2] = (int) temp;
+
+  ttn.sendBytes(payload, sizeof(payload));
+ 
   delay(5000);
-  display.clearDisplay(); 
+  display.clearDisplay();
 }
