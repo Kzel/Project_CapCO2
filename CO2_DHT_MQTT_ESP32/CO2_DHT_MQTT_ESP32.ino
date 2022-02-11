@@ -25,7 +25,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 int analogPin = 35;
 
-const char* mqtt_serveur = "192.168.112.175"; // L'adresse IP du Cloud
+// Remplacer avec votre adresse IP 
+const char* mqtt_serveur = "192.168.112.175";
 // Le client et le dernier message
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -225,7 +226,7 @@ void loop(){
     dtostrf(hum, 1, 2, humdChar);
     client.publish("esp32/hum", humdChar);
 
-    // Convertir l'humidite en array de char et Publish dans le topic de temperature
+    // Convertir la concentration de CO2 en array de char et Publish dans le topic de temperature
     char co2Char[8];
     dtostrf(CO2, 1, 2, co2Char);
     client.publish("esp32/co2", co2Char);

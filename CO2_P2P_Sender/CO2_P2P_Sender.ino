@@ -37,7 +37,6 @@ float ReadHum(){
   }
 }
 
-
 // fonction pour lire la valeur de température
 float ReadTemp(){
   float temp = dht.readTemperature();
@@ -51,7 +50,6 @@ float ReadTemp(){
     return temp;
   }   
 }
-
 
 // fonction pour lire la valeur de concentration CO2
 float ReadCO2(){
@@ -89,12 +87,12 @@ float ReadCO2(){
 }
 
 void setup() {
-  //initialize Serial Monitor
+  // Initialiser Serial
   Serial.begin(115200);
   while (!Serial);
   Serial.println("LoRa Sender");
   
-  //setup LoRa transceiver module
+  // Setup LoRa emetteur module
   LoRa.setPins(ss, rst, dio0);
   
   while (!LoRa.begin(866E6)) {
@@ -122,7 +120,8 @@ void loop() {
   float CO2 = ReadCO2(); //lire la concentration CO2
   float hum = ReadHum(); //lire la valeur de l'humidité
   float temp = ReadTemp(); //lire la valeur de température
-  //Send LoRa packet to receiver
+
+  
   if(CO2 >= 1000 ){
       digitalWrite(LEDPINV,LOW);
       digitalWrite(LEDPINR,HIGH);
@@ -130,6 +129,7 @@ void loop() {
       digitalWrite(LEDPINR,LOW);
       digitalWrite(LEDPINV,HIGH);
   }
+  // L'affichage sur l'ecran
   display.setCursor(0, 0); 
   display.println(CO2);
   display.setCursor(90, 0);
@@ -151,6 +151,7 @@ void loop() {
   
   display.display();
   display.clearDisplay();
+  //Envoyer LoRa packet a recevoir
   LoRa.beginPacket();
   LoRa.print((int)CO2);
   LoRa.endPacket();

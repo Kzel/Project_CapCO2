@@ -4,10 +4,12 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-//define the pins used by the transceiver module
+// Definir les pins pour LoRa module
 #define ss 5
 #define rst 14
 #define dio0 2
+
+// Replace par votre WiFi SSID et pwd and server address
 const char* ssid = "Tryffin";
 const char* password = "99504312";
 const char* mqtt_serveur = "192.168.112.175";
@@ -17,7 +19,7 @@ PubSubClient client(espClient);
 long dernier_mesg = 0;
 
 void setup() {
-  //initialize Serial Monitor
+  // Initialiser Serial
   Serial.begin(115200);
   while (!Serial);
    WiFi.begin(ssid, password);
@@ -37,65 +39,59 @@ void setup() {
   client.setCallback(callback);
   Serial.println("LoRa Receiver");
 
-  //setup LoRa transceiver module
+  // Setup LoRa module
   LoRa.setPins(ss, rst, dio0);
   
-  //replace the LoRa.begin(---E-) argument with your location's frequency 
-  //433E6 for Asia
-  //866E6 for Europe
-  //915E6 for North America
+  // Remplace par la frequency de votre location
+  //433E6 pour Asie
+  //866E6 pour Europe
+  //915E6 pour Amerique du Nord
   while (!LoRa.begin(866E6)) {
     Serial.println(".");
     delay(500);
   }
-   // Change sync word (0xF3) to match the receiver
-  // The sync word assures you don't get LoRa messages from other LoRa transceivers
-  // ranges from 0-0xFF
+  // Changer sync word (0xF3) pour correspondre a recepteur
+  // Le sync word assure que vous ne recevez pas LoRa messages a partir les autre LoRa module
+  // De 0 a 0xFF
   LoRa.setSyncWord(0xF3);
-  Serial.println("LoRa Initializing OK!");
+  Serial.println("LoRa Initialiser OK!");
 }
 
 void callback(char* topic, byte* message, unsigned int length) {
-
   String messageTemp;
-  
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
-  
   Serial.println();
 }
 
 void reconnect() {
-  // Boucle jusqu'a reconncter
+  // Boucle jusqu'a reconnect
   while (!client.connected()) {
     Serial.print("Tenter la connection de MQTT..");
-    // Tenter a reconnecter
 
     if (client.connect("ESP32Client")) {
-      Serial.println("Connecte!");
+      Serial.println("Connectee!");
 
     } else {
-      Serial.print("Echec, Return Code=");
+      Serial.print("Failed, Return Code=");
       Serial.print(client.state());
-      Serial.println(" Reessayer apres 5s");
-      delay(5000);
+      Serial.println("Ressayer apres 2s");
+      delay(2000);
     }
   }
 }
 
 void loop() {
-  // try to parse packet
-  
-  
+
+  // Essayer de parser packet
   int CO2;
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
-    // received a packet
-    Serial.print("Received packet '");
-
-    // read packet
+    // Recevoir un packet
+    Serial.print("Recu packet '");
+    // Lire packet
     while (LoRa.available()) {
       String LoRaData = LoRa.readString();
       Serial.print(LoRaData.toInt());
@@ -103,7 +99,7 @@ void loop() {
       if (!client.connected()) {
           reconnect();
         }
-        client.loop();
+        client.loop();  
       long actuel = millis();
       if (actuel - dernier_mesg > 5000) {
           dernier_mesg = actuel;
@@ -112,10 +108,8 @@ void loop() {
           client.publish("esp32/co2", co2Char);
         }
     }
-    // print RSSI of packet
-    Serial.print("' with RSSI ");
+    // afficher RSSI de packet
+    Serial.print("' avec RSSI ");
     Serial.println(LoRa.packetRssi());
   }
-  
-  
 }

@@ -6,14 +6,20 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-const char *appEui = "0000000000000000";
+// Remplacez avec votre Eui et Key
+const char *appEui = "0000000000000000"; 
 const char *appKey = "7FA6FEA830ADCBA6B4C9C556C69A6B46";
 
+// La frequence de votre location
+// Europe 433/868 MHz
+// Asie 430 MHz
+// Amerique du Nord 915MHz
 #define freqPlan TTN_FP_EU868
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 TheThingsNetwork ttn(Serial1, Serial, TTN_FP_EU868);
 
+// Le type et le pin de DHT11
 DHT dht(6, DHT11);
 void setup()
 {
@@ -35,9 +41,7 @@ void setup()
 
 void loop()
 {
-  
     int sensorValue = analogRead(A0);
-  
     float voltage = sensorValue * (5000 / 1024.0);
     int voltage_diference = voltage - 400;
     float concentration = voltage_diference * 50.0 / 16.0;
@@ -50,7 +54,8 @@ void loop()
       digitalWrite(12, 0);
       digitalWrite(13, 1);   
     }
-    
+
+  // Affichage de l'ecran
   display.setCursor(0, 0); 
   display.println(concentration);
   display.setCursor(90, 0);
@@ -71,14 +76,14 @@ void loop()
   display.println("C");
   
   display.display();
-   
+
+  // Envoyer les donnees a TTN
   int concentraion2;
   concentraion2 = (int)concentration/20;
   byte payload[4];
   payload[0] = concentraion2;
   payload[1] = (int) hum;
   payload[2] = (int) temp;
-
   ttn.sendBytes(payload, sizeof(payload));
  
   delay(5000);
