@@ -44,11 +44,11 @@ void loop()
     float hum = dht.readHumidity();
     float temp = dht.readTemperature();
     if(concentration > 1000){
-      digitalWrite(13, 1);
-      digitalWrite(12, 0);
-    }else{
+      digitalWrite(12, 1);
       digitalWrite(13, 0);
-      digitalWrite(12, 1);   
+    }else{
+      digitalWrite(12, 0);
+      digitalWrite(13, 1);   
     }
     
   display.setCursor(0, 0); 
